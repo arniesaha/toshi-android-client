@@ -37,6 +37,7 @@ public class Conversation extends RealmObject {
     private long updatedTime;
     private RealmList<SofaMessage> allMessages;
     private int numberOfUnread;
+    private boolean isAccepted = false;
 
     public Conversation() {}
 
@@ -111,6 +112,15 @@ public class Conversation extends RealmObject {
     @NonNull
     public Recipient getRecipient() {
         return this.recipient;
+    }
+
+    public boolean isAccepted() {
+        return isAccepted;
+    }
+
+    public Conversation setAccepted() {
+        this.isAccepted = true;
+        return this;
     }
 
     @Override
