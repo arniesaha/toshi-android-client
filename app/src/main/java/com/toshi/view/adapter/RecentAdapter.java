@@ -39,22 +39,44 @@ import com.toshi.model.sofa.SofaType;
 import com.toshi.util.LogUtil;
 import com.toshi.view.BaseApplication;
 import com.toshi.view.adapter.listeners.OnItemClickListener;
-import com.toshi.view.adapter.viewholder.ClickableViewHolder;
 import com.toshi.view.adapter.viewholder.ThreadViewHolder;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class RecentAdapter extends RecyclerView.Adapter<ThreadViewHolder> implements ClickableViewHolder.OnClickListener {
+public class RecentAdapter extends RecyclerView.Adapter<ThreadViewHolder> {
 
     private final ArrayList<Conversation> conversationsToDelete;
     private List<Conversation> conversations;
+
     private OnItemClickListener<Conversation> onItemClickListener;
+    private OnItemClickListener<Conversation> onConversationAccepted;
+    private OnItemClickListener<Conversation> onConversationRejected;
 
     public RecentAdapter() {
         this.conversations = new ArrayList<>(0);
         this.conversationsToDelete = new ArrayList<>();
+    }
+
+    public void setConversations(final List<Conversation> conversations) {
+        this.conversations = conversations;
+        notifyDataSetChanged();
+    }
+
+    public RecentAdapter setOnItemClickListener(final OnItemClickListener<Conversation> onItemClickListener) {
+        this.onItemClickListener = onItemClickListener;
+        return this;
+    }
+
+    public RecentAdapter setOnConversationAcceptedListener(final OnItemClickListener<Conversation> onItemClickListener) {
+        this.onConversationAccepted = onItemClickListener;
+        return this;
+    }
+
+    public RecentAdapter setOnConversationRejectListed(final OnItemClickListener<Conversation> onItemClickListener) {
+        this.onConversationRejected = onItemClickListener;
+        return this;
     }
 
     @Override
@@ -69,33 +91,17 @@ public class RecentAdapter extends RecyclerView.Adapter<ThreadViewHolder> implem
         holder.setThread(conversation);
 
         final String formattedLatestMessage = formatLastMessage(conversation.getLatestMessage());
-        holder.setLatestMessage(formattedLatestMessage);
-        holder.setOnClickListener(this);
+        holder
+                .isApproved(conversation.isAccepted())
+                .setLatestMessage(formattedLatestMessage)
+                .setOnItemClickListener(conversation, this.onItemClickListener)
+                .setOnConversationAcceptedListener(conversation, this.onConversationAccepted)
+                .setOnConversationRejectedListener(conversation, this.onConversationRejected);
     }
 
     @Override
     public int getItemCount() {
         return this.conversations.size();
-    }
-
-    @Override
-    public void onClick(final int position) {
-        if (this.onItemClickListener == null) {
-            return;
-        }
-
-        final Conversation clickedConversation = conversations.get(position);
-        this.onItemClickListener.onItemClick(clickedConversation);
-    }
-
-    public void setConversations(final List<Conversation> conversations) {
-        this.conversations = conversations;
-        notifyDataSetChanged();
-    }
-
-    public RecentAdapter setOnItemClickListener(final OnItemClickListener<Conversation> onItemClickListener) {
-        this.onItemClickListener = onItemClickListener;
-        return this;
     }
 
     public void updateConversation(final Conversation conversation) {
@@ -108,6 +114,18 @@ public class RecentAdapter extends RecyclerView.Adapter<ThreadViewHolder> implem
 
         this.conversations.set(position, conversation);
         notifyItemChanged(position);
+    }
+
+    public void acceptConversation(final Conversation conversation) {
+        final int position = this.conversations.indexOf(conversation);
+        if (position == -1) return;
+        notifyItemChanged(position);
+    }
+
+    public void rejectConversation(final Conversation conversation) {
+        final int position = this.conversations.indexOf(conversation);
+        this.conversations.remove(conversation);
+        notifyItemRemoved(position);
     }
 
     public void removeItemAtWithUndo(final int position, final RecyclerView parentView) {

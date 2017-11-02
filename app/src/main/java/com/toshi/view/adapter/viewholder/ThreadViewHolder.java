@@ -19,6 +19,7 @@ package com.toshi.view.adapter.viewholder;
 
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.toshi.R;
@@ -26,6 +27,7 @@ import com.toshi.model.local.Conversation;
 import com.toshi.model.local.Recipient;
 import com.toshi.util.ImageUtil;
 import com.toshi.util.LocaleUtil;
+import com.toshi.view.adapter.listeners.OnItemClickListener;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -36,21 +38,29 @@ import static android.view.View.VISIBLE;
 
 public class ThreadViewHolder extends ClickableViewHolder {
 
-    private static final int MAX_NAME_LENGHT = 25;
-
     private ImageView avatar;
     private TextView name;
     private TextView latestMessage;
     private TextView time;
     private TextView unreadCounter;
+    private LinearLayout requestWrapper;
+    private LinearLayout timestampWrapper;
+    private ImageView accept;
+    private ImageView reject;
+
+    private boolean isConversationAccepted;
 
     public ThreadViewHolder(final View view) {
         super(view);
-        this.name = (TextView) view.findViewById(R.id.name);
-        this.avatar = (ImageView) view.findViewById(R.id.avatar);
-        this.latestMessage = (TextView) view.findViewById(R.id.latest_message);
-        this.time = (TextView) view.findViewById(R.id.time);
-        this.unreadCounter = (TextView) view.findViewById(R.id.unread_counter);
+        this.name = view.findViewById(R.id.name);
+        this.avatar = view.findViewById(R.id.avatar);
+        this.latestMessage = view.findViewById(R.id.latest_message);
+        this.time = view.findViewById(R.id.time);
+        this.unreadCounter = view.findViewById(R.id.unread_counter);
+        this.requestWrapper = view.findViewById(R.id.requestWrapper);
+        this.timestampWrapper = view.findViewById(R.id.timestampWrapper);
+        this.accept = view.findViewById(R.id.accept);
+        this.reject = view.findViewById(R.id.reject);
     }
 
     public void setThread(final Conversation conversation) {
@@ -71,8 +81,22 @@ public class ThreadViewHolder extends ClickableViewHolder {
         return (numberOfUnread > 99) ? ":)" : String.valueOf(numberOfUnread);
     }
 
-    public void setLatestMessage(final String latestMessage) {
-        this.latestMessage.setText(latestMessage);
+    public ThreadViewHolder setLatestMessage(final String latestMessage) {
+        if (this.isConversationAccepted) this.latestMessage.setText(latestMessage);
+        else this.latestMessage.setText(R.string.new_message);
+        return this;
+    }
+
+    public ThreadViewHolder isApproved(final boolean isApproved) {
+        this.isConversationAccepted = isApproved;
+        if (isApproved) {
+            this.requestWrapper.setVisibility(GONE);
+            this.timestampWrapper.setVisibility(VISIBLE);
+        } else {
+            this.requestWrapper.setVisibility(VISIBLE);
+            this.timestampWrapper.setVisibility(GONE);
+        }
+        return this;
     }
 
     private String getLastMessageCreationTime(final Conversation conversation) {
@@ -93,5 +117,22 @@ public class ThreadViewHolder extends ClickableViewHolder {
         } else {
             return new SimpleDateFormat("d MMM", LocaleUtil.getLocale()).format(new Date(creationTime));
         }
+    }
+
+    public ThreadViewHolder setOnItemClickListener(final Conversation conversation, final OnItemClickListener<Conversation> listener) {
+        this.itemView.setOnClickListener(__ -> listener.onItemClick(conversation));
+        return this;
+    }
+
+    public ThreadViewHolder setOnConversationAcceptedListener(final Conversation conversation, final OnItemClickListener<Conversation> listener) {
+        if (this.isConversationAccepted) this.accept.setOnClickListener(null);
+        else this.accept.setOnClickListener(v -> listener.onItemClick(conversation));
+        return this;
+    }
+
+    public ThreadViewHolder setOnConversationRejectedListener(final Conversation conversation, final OnItemClickListener<Conversation> listener) {
+        if (this.isConversationAccepted) this.reject.setOnClickListener(null);
+        else this.reject.setOnClickListener(v -> listener.onItemClick(conversation));
+        return this;
     }
 }

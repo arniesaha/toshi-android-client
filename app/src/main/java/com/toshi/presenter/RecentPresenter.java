@@ -31,7 +31,6 @@ import com.toshi.view.BaseApplication;
 import com.toshi.view.activity.ChatActivity;
 import com.toshi.view.activity.NewConversationActivity;
 import com.toshi.view.adapter.RecentAdapter;
-import com.toshi.view.adapter.listeners.OnItemClickListener;
 import com.toshi.view.custom.HorizontalLineDivider;
 import com.toshi.view.fragment.toplevel.RecentFragment;
 
@@ -41,9 +40,7 @@ import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.subscriptions.CompositeSubscription;
 
-public final class RecentPresenter implements
-        Presenter<RecentFragment>,
-        OnItemClickListener<Conversation> {
+public final class RecentPresenter implements Presenter<RecentFragment>{
 
     private RecentFragment fragment;
     private boolean firstTimeAttaching = true;
@@ -63,8 +60,6 @@ public final class RecentPresenter implements
 
     private void initLongLivingObjects() {
         this.subscriptions = new CompositeSubscription();
-        this.adapter = new RecentAdapter()
-                .setOnItemClickListener(this);
     }
 
     private void initShortLivingObjects() {
@@ -84,8 +79,14 @@ public final class RecentPresenter implements
         final RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this.fragment.getContext());
         recyclerView.setLayoutManager(layoutManager);
         recyclerView.setItemAnimator(new DefaultItemAnimator());
-        recyclerView.setAdapter(this.adapter);
         addSwipeToDeleteListener(recyclerView);
+
+        this.adapter = new RecentAdapter()
+                .setOnItemClickListener(this::handleConversationClicked)
+                .setOnConversationAcceptedListener(this::handleAcceptedConversation)
+                .setOnConversationRejectListed(this::handleRejectedConversation);
+
+        recyclerView.setAdapter(this.adapter);
 
         final int dividerLeftPadding = fragment.getResources().getDimensionPixelSize(R.dimen.avatar_size_small)
                 + fragment.getResources().getDimensionPixelSize(R.dimen.activity_horizontal_margin)
@@ -96,6 +97,47 @@ public final class RecentPresenter implements
                         .setRightPadding(dividerRightPadding)
                         .setLeftPadding(dividerLeftPadding);
         recyclerView.addItemDecoration(lineDivider);
+    }
+
+    private void handleConversationClicked(final Conversation conversation) {
+        if (this.fragment == null) return;
+        final Intent intent = new Intent(this.fragment.getActivity(), ChatActivity.class);
+        intent.putExtra(ChatActivity.EXTRA__THREAD_ID, conversation.getThreadId());
+        this.fragment.startActivity(intent);
+    }
+
+    private void handleAcceptedConversation(final Conversation conversation) {
+        if (this.fragment == null) return;
+
+        final Subscription sub =
+                BaseApplication
+                .get()
+                .getSofaMessageManager()
+                .acceptConversation(conversation)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                        () -> this.adapter.acceptConversation(conversation),
+                        throwable -> LogUtil.e(getClass(), "Error while saving contact " + throwable)
+                );
+
+        this.subscriptions.add(sub);
+    }
+
+    private void handleRejectedConversation(final Conversation conversation) {
+        if (this.fragment == null) return;
+
+        final Subscription sub =
+                BaseApplication
+                .get()
+                .getSofaMessageManager()
+                .rejectConversation(conversation)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                        () -> this.adapter.rejectConversation(conversation),
+                        throwable -> LogUtil.e(getClass(), "Error while saving blocked user " + throwable)
+                );
+
+        this.subscriptions.add(sub);
     }
 
     private void addSwipeToDeleteListener(final RecyclerView recyclerView) {
@@ -122,7 +164,7 @@ public final class RecentPresenter implements
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
                         this::handleConversations,
-                        this::handleConversationsError
+                        throwable -> LogUtil.exception(getClass(), "Error fetching conversations", throwable)
                 );
 
         this.subscriptions.add(sub);
@@ -131,10 +173,6 @@ public final class RecentPresenter implements
     private void handleConversations(final List<Conversation> conversations) {
         this.adapter.setConversations(conversations);
         updateEmptyState();
-    }
-
-    private void handleConversationsError(final Throwable throwable) {
-        LogUtil.exception(getClass(), "Error fetching conversations", throwable);
     }
 
     private void attachSubscriber() {
@@ -146,7 +184,7 @@ public final class RecentPresenter implements
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
                         this::handleConversation,
-                        this::handleConversationError
+                        throwable -> LogUtil.exception(getClass(), "Error during fetching conversation", throwable)
                 );
 
         this.subscriptions.add(sub);
@@ -155,10 +193,6 @@ public final class RecentPresenter implements
     private void handleConversation(final Conversation updatedConversation) {
         this.adapter.updateConversation(updatedConversation);
         updateEmptyState();
-    }
-
-    private void handleConversationError(final Throwable throwable) {
-        LogUtil.exception(getClass(), "Error during fetching conversation", throwable);
     }
 
     private void updateEmptyState() {
@@ -174,14 +208,6 @@ public final class RecentPresenter implements
         } else if (!shouldShowEmptyState && showingEmptyState) {
             this.fragment.getBinding().emptyStateSwitcher.showNext();
         }
-    }
-
-    @Override
-    public void onItemClick(final Conversation clickedConversation) {
-        if (this.fragment == null) return;
-        final Intent intent = new Intent(this.fragment.getActivity(), ChatActivity.class);
-        intent.putExtra(ChatActivity.EXTRA__THREAD_ID, clickedConversation.getThreadId());
-        this.fragment.startActivity(intent);
     }
 
     private void goToUserSearchActivity() {
