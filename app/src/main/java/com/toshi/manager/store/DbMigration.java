@@ -263,6 +263,16 @@ public class DbMigration implements RealmMigration {
 
             oldVersion++;
         }
+
+        if (oldVersion == 17) {
+            schema.get("Conversation")
+                    .addField("isAccepted", boolean.class)
+                    .transform(obj -> {
+                        obj.setBoolean("isAccepted", true);
+                    });
+
+            oldVersion++;
+        }
     }
 
     @Override
