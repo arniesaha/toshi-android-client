@@ -317,6 +317,17 @@ public class ConversationStore {
         });
     }
 
+    public Completable acceptConversation(final Conversation conversation) {
+        return Completable.fromAction(() -> {
+            final Realm realm = BaseApplication.get().getRealm();
+            realm.beginTransaction();
+            conversation.setAccepted();
+            realm.copyToRealmOrUpdate(conversation);
+            realm.commitTransaction();
+            realm.close();
+        });
+    }
+
     private void broadcastNewChatMessage(final String threadId, final SofaMessage newMessage) {
         if (watchedThreadId == null || !watchedThreadId.equals(threadId)) {
             return;

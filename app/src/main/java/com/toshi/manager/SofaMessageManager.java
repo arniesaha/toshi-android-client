@@ -313,6 +313,18 @@ public final class SofaMessageManager {
         return this.messageReceiver.fetchLatestMessage();
     }
 
+    public Completable acceptConversation(final Conversation conversation) {
+        return this.conversationStore.acceptConversation(conversation);
+    }
+
+    public Completable rejectConversation(final Conversation conversation) {
+        return BaseApplication
+                .get()
+                .getRecipientManager()
+                .blockUser(conversation.getThreadId())
+                .andThen(deleteConversation(conversation));
+    }
+
     public void clear() {
         clearMessageReceiver();
         clearMessageSender();
