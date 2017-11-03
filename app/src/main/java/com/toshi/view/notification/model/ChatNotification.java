@@ -97,6 +97,13 @@ public class ChatNotification extends ToshiNotification {
                 .putExtra(MainActivity.EXTRA__ACTIVE_TAB, 1);
     }
 
+    public PendingIntent getFallbackPendingIntent() {
+        return TaskStackBuilder.create(BaseApplication.get())
+                .addParentStack(MainActivity.class)
+                .addNextIntent(getMainIntent())
+                .getPendingIntent(0, PendingIntent.FLAG_ONE_SHOT);
+    }
+
     private PendingIntent getFallbackPendingIntent(final Intent mainIntent) {
         return TaskStackBuilder.create(BaseApplication.get())
                 .addParentStack(MainActivity.class)

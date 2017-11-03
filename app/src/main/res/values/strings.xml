@@ -273,4 +273,5 @@
     <string name="sending_message_error">Can\'t send message</string>
     <string name="sending_payment_request_error">Can\'t send payment request</string>
     <string name="payment_request_rejected">Payment request rejected</string>
+    <string name="new_message">You have a new message</string>
 </resources>
