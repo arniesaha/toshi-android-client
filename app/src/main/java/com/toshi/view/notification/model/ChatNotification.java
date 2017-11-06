@@ -94,21 +94,23 @@ public class ChatNotification extends ToshiNotification {
 
     private Intent getMainIntent() {
         return new Intent(BaseApplication.get(), MainActivity.class)
-                .putExtra(MainActivity.EXTRA__ACTIVE_TAB, 1);
+                .putExtra(MainActivity.EXTRA__ACTIVE_TAB, 1)
+                .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
     }
 
     public PendingIntent getFallbackPendingIntent() {
-        return TaskStackBuilder.create(BaseApplication.get())
-                .addParentStack(MainActivity.class)
-                .addNextIntent(getMainIntent())
-                .getPendingIntent(0, PendingIntent.FLAG_ONE_SHOT);
+        return PendingIntent.getActivity(
+                BaseApplication.get(),
+                UUID.randomUUID().hashCode(),
+                getMainIntent(),
+                PendingIntent.FLAG_UPDATE_CURRENT);
     }
 
     private PendingIntent getFallbackPendingIntent(final Intent mainIntent) {
         return TaskStackBuilder.create(BaseApplication.get())
                 .addParentStack(MainActivity.class)
                 .addNextIntent(mainIntent)
-                .getPendingIntent(0, PendingIntent.FLAG_ONE_SHOT);
+                .getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
     }
 
     private Intent getChatIntent() {

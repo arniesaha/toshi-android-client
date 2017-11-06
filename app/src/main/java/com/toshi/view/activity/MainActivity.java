@@ -18,6 +18,7 @@
 package com.toshi.view.activity;
 
 
+import android.content.Intent;
 import android.databinding.DataBindingUtil;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -78,5 +79,12 @@ public class MainActivity
     public void onRestoreInstanceState(final Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
         this.presenter.onRestoreInstanceState(savedInstanceState);
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        if (this.presenter == null) return;
+        this.presenter.trySelectTabFromIntent(intent);
     }
 }

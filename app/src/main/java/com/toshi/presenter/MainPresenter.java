@@ -78,7 +78,7 @@ public class MainPresenter implements Presenter<MainActivity> {
             manuallySelectFirstTab();
         }
         initNavBar();
-        trySelectTabFromIntent();
+        trySelectTabFromIntent(this.activity.getIntent());
         attachUnreadMessagesSubscription();
         handleHasBackedUpPhrase();
         showFirstRunDialog();
@@ -193,11 +193,10 @@ public class MainPresenter implements Presenter<MainActivity> {
     }
 
     public void onRestoreInstanceState(final Bundle savedInstanceState) {
-        trySelectTabFromIntent();
+        trySelectTabFromIntent(this.activity.getIntent());
     }
 
-    private void trySelectTabFromIntent() {
-        final Intent intent = this.activity.getIntent();
+    public void trySelectTabFromIntent(final Intent intent) {
         final int activeTab = intent.getIntExtra(MainActivity.EXTRA__ACTIVE_TAB, this.activity.getBinding().navBar.getCurrentItem());
         this.activity.getIntent().removeExtra(MainActivity.EXTRA__ACTIVE_TAB);
         this.activity.getBinding().navBar.setCurrentItem(activeTab);
