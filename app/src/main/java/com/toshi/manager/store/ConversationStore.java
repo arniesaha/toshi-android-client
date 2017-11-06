@@ -123,16 +123,16 @@ public class ConversationStore {
     }
 
     private Single<Conversation> saveMessage(
-            @NonNull final Recipient receiver,
+            @NonNull final Recipient recipient,
             @Nullable final SofaMessage message) {
         return Single.fromCallable(() -> {
-            final Conversation conversationToStore = getOrCreateConversation(receiver);
+            final User sender = message != null ? message.getSender() : null;
+            final Conversation conversationToStore = getOrCreateConversation(recipient, sender);
 
             if (message != null && shouldSaveTimestampMessage(message, conversationToStore)) {
-                final SofaMessage timestampMessage =
-                        generateTimestampMessage();
+                final SofaMessage timestampMessage = generateTimestampMessage();
                 conversationToStore.addMessage(timestampMessage);
-                broadcastNewChatMessage(receiver.getThreadId(), timestampMessage);
+                broadcastNewChatMessage(recipient.getThreadId(), timestampMessage);
             }
 
             final Realm realm = BaseApplication.get().getRealm();
@@ -140,7 +140,7 @@ public class ConversationStore {
 
             if (message != null) {
                 final SofaMessage storedMessage = realm.copyToRealmOrUpdate(message);
-                if(conversationToStore.getThreadId().equals(watchedThreadId)) {
+                if (conversationToStore.getThreadId().equals(watchedThreadId)) {
                     conversationToStore.setLatestMessage(storedMessage);
                 } else {
                     conversationToStore.setLatestMessageAndUpdateUnreadCounter(storedMessage);
@@ -157,23 +157,45 @@ public class ConversationStore {
     }
 
     @NonNull
-    private Conversation getOrCreateConversation(final User user) {
-        final Recipient recipient = new Recipient(user);
-        return getOrCreateConversation(recipient);
-    }
-
-    @NonNull
     private Conversation getOrCreateConversation(final Group group) {
         final Recipient recipient = new Recipient(group);
-        return getOrCreateConversation(recipient);
-    }
-
-    @NonNull
-    private Conversation getOrCreateConversation(final Recipient recipient) {
         final Conversation existingConversation = loadWhere(THREAD_ID_FIELD, recipient.getThreadId());
         return existingConversation == null
                 ? new Conversation(recipient)
                 : existingConversation;
+    }
+
+    @NonNull
+    private Conversation getOrCreateConversation(final Recipient recipient, final User sender) {
+        final Conversation existingConversation = loadWhere(THREAD_ID_FIELD, recipient.getThreadId());
+        final User localUser = getLocalUser();
+        if (localUser == null || sender == null) {
+            return existingConversation == null
+                    ? new Conversation(recipient)
+                    : existingConversation;
+        }
+
+        if (existingConversation != null) return existingConversation;
+
+        final boolean isLocalUser = localUser.getToshiId().equals(sender.getToshiId());
+        final boolean isApp = recipient.getUser().isApp();
+        final Conversation conversation = new Conversation(recipient);
+        return isLocalUser || isApp
+                ? conversation.setAccepted()
+                : conversation;
+    }
+
+    private User getLocalUser() {
+        try {
+            return BaseApplication
+                    .get()
+                    .getUserManager()
+                    .getCurrentUser()
+                    .toBlocking()
+                    .value();
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private SofaMessage generateTimestampMessage() {
