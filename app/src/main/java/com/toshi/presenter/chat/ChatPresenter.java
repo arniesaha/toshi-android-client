@@ -145,18 +145,7 @@ public final class ChatPresenter implements Presenter<ChatActivity> {
     }
 
     private void handleUsernameClicked(final String username) {
-        final Subscription sub =
-                BaseApplication
-                .get()
-                .getRecipientManager()
-                .getUserFromUsername(username)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(
-                        user -> handleUsernameClicked(username, user),
-                        ex   -> handleUsernameClicked(username, null)
-                );
-
-        this.subscriptions.add(sub);
+        viewProfileWithUsername(username);
     }
 
     private void handleImageClicked(final String filePath) {
@@ -236,24 +225,6 @@ public final class ChatPresenter implements Presenter<ChatActivity> {
                 .get()
                 .getTransactionManager()
                 .updatePaymentRequestState(recipient.getUser(), existingMessage, paymentState);
-    }
-
-    private void handleUsernameClicked(final String searchedForUsername, final User user) {
-        if (this.activity == null) return;
-        if (user == null) {
-            Toast.makeText(this.activity, this.activity.getString(R.string.username_search_response_no_match), Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        if (user.getUsernameForEditing() == null) return;
-        final boolean isSameUser = user.getUsernameForEditing().toLowerCase().equals(searchedForUsername.toLowerCase());
-
-        if (!isSameUser) {
-            Toast.makeText(this.activity, this.activity.getString(R.string.username_search_response_no_match), Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        viewProfile(user.getToshiId());
     }
 
     private void handleUpdatedMessage(final SofaMessage sofaMessage) {
@@ -666,15 +637,19 @@ public final class ChatPresenter implements Presenter<ChatActivity> {
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
-                        remoteUser -> viewProfile(recipient.getThreadId()),
+                        remoteUser -> viewProfileWithId(recipient.getThreadId()),
                         this::handleError
                 );
 
         this.subscriptions.add(sub);
     }
 
-    private void viewProfile(final String ownerAddress) {
-        this.chatNavigation.startProfileActivity(this.activity, ownerAddress);
+    private void viewProfileWithUsername(final String username) {
+        this.chatNavigation.startProfileActivityWithUsername(this.activity, username);
+    }
+
+    private void viewProfileWithId(final String userId) {
+        this.chatNavigation.startProfileActivityWithId(this.activity, userId);
     }
 
     private void initChatMessageStore() {

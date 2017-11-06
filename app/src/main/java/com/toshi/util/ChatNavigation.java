@@ -111,10 +111,17 @@ public class ChatNavigation {
         activity.startActivity(intent);
     }
 
-    public void startProfileActivity(final AppCompatActivity activity,
-                                     final String ownerAddress) {
+    public void startProfileActivityWithId(final AppCompatActivity activity,
+                                           final String ownerAddress) {
         final Intent intent = new Intent(activity, ViewUserActivity.class)
                 .putExtra(ViewUserActivity.EXTRA__USER_ADDRESS, ownerAddress);
+        activity.startActivity(intent);
+    }
+
+    public void startProfileActivityWithUsername(final AppCompatActivity activity,
+                                                 final String username) {
+        final Intent intent = new Intent(activity, ViewUserActivity.class)
+                .putExtra(ViewUserActivity.EXTRA__USER_NAME, username);
         activity.startActivity(intent);
     }
 

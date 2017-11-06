@@ -64,7 +64,7 @@ public final class ViewUserPresenter implements
     private boolean firstTimeAttached = true;
 
     private User user;
-    private String userAddress;
+    private String userId;
     private UserBlockingHandler userBlockingHandler;
     private UserReportingHandler userReportingHandler;
     private RatingHandler ratingHandler;
@@ -84,29 +84,64 @@ public final class ViewUserPresenter implements
     }
 
     private void initShortLivingObjects() {
-        processIntentData();
+        final Subscription subscription =
+                processIntentData()
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                        this::handleIntentProcessed,
+                        ex   -> handleUserLoadingFailed()
+                );
+        this.subscriptions.add(subscription);
+
+    }
+
+    private Completable processIntentData() {
+        this.userId = this.activity.getIntent().getStringExtra(ViewUserActivity.EXTRA__USER_ADDRESS);
+        if (userId != null) return Completable.complete();
+        return tryLookupByUsername();
+    }
+
+    private Completable tryLookupByUsername() {
+        final String username = this.activity.getIntent().getStringExtra(ViewUserActivity.EXTRA__USER_NAME);
+        return BaseApplication
+                .get()
+                .getRecipientManager()
+                .getUserFromUsername(username)
+                .doOnSuccess(user -> handleUsernameLookup(user, username))
+                .toCompletable();
+    }
+
+    private void handleUsernameLookup(final User user, final String searchedForUsername) {
+        if (user == null) return;
+        final boolean isCorrectUser = user.getUsernameForEditing().toLowerCase().equals(searchedForUsername.toLowerCase());
+        if (!isCorrectUser) return;
+        this.user = user;
+        this.userId = user.getToshiId();
+    }
+
+    private void handleIntentProcessed() {
+        if (this.userId == null) {
+            handleUserLoadingFailed();
+            return;
+        }
+
         initHandlers();
         initUi();
         initUser();
     }
 
-    private void processIntentData() {
-        this.userAddress = this.activity.getIntent().getStringExtra(ViewUserActivity.EXTRA__USER_ADDRESS);
-    }
-
     private void initHandlers() {
-        this.ratingHandler = new RatingHandler(this.activity, this.userAddress);
+        this.ratingHandler = new RatingHandler(this.activity, this.userId);
         this.userReportingHandler = new UserReportingHandler(this.activity)
-                .setUserAddress(this.userAddress);
+                .setUserAddress(this.userId);
         this.userBlockingHandler = new UserBlockingHandler(this.activity)
-                .setUserAddress(this.userAddress)
+                .setUserAddress(this.userId)
                 .setOnBlockingListener(this);
     }
 
     private void initUi() {
         initToolbar();
         initClickListeners();
-        setRateButtonVisibility();
     }
 
     private void initToolbar() {
@@ -119,20 +154,21 @@ public final class ViewUserPresenter implements
         this.activity.getBinding().closeButton.setOnClickListener((View v) -> this.activity.onBackPressed());
         this.activity.getBinding().rateUser.setOnClickListener((View v) -> this.ratingHandler.rateUser());
     }
-    
-    private void setRateButtonVisibility() {
-        this.activity.getBinding().rateUser.setVisibility(isLocalUser() ? View.GONE : View.VISIBLE);
-    }
 
     private void initUser() {
-        loadUser();
+        tryLoadUser();
         fetchUserReputation();
         checkIfUserBlocked();
     }
 
-    private void loadUser() {
+    private void tryLoadUser() {
+        if (this.user != null) {
+            handleUserLoaded(this.user);
+            return;
+        }
+
         final Subscription userSub =
-                getUserById(this.userAddress)
+                getUserById(this.userId)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
                         this::handleUserLoaded,
@@ -151,7 +187,7 @@ public final class ViewUserPresenter implements
 
     private void fetchUserReputation() {
         final Subscription reputationSub =
-                getReputationScoreById(this.userAddress)
+                getReputationScoreById(this.userId)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
                         this::handleReputationResponse,
@@ -179,6 +215,10 @@ public final class ViewUserPresenter implements
 
     private void handleUserLoadingFailed(final Throwable throwable) {
         LogUtil.exception(getClass(), "Error during fetching user", throwable);
+        handleUserLoadingFailed();
+    }
+
+    private void handleUserLoadingFailed() {
         if (this.activity != null) {
             this.activity.finish();
             Toast.makeText(this.activity, R.string.error_unknown_user, Toast.LENGTH_LONG).show();
@@ -198,6 +238,8 @@ public final class ViewUserPresenter implements
         binding.location.setVisibility(user.getLocation() == null ? View.GONE : View.VISIBLE);
         ImageUtil.load(user.getAvatar(), binding.avatar);
         addClickListeners();
+        setRateButtonVisibility();
+        setMenuVisibility();
         updateAddContactState();
         if (shouldPlayScanSounds()) SoundManager.getInstance().playSound(SoundManager.SCAN_ERROR);
     }
@@ -213,6 +255,18 @@ public final class ViewUserPresenter implements
         this.activity.getBinding().favorite.setEnabled(true);
         this.activity.getBinding().messageContactButton.setOnClickListener(this::handleMessageContactButton);
         this.activity.getBinding().pay.setOnClickListener(v -> handlePayClicked());
+    }
+
+    private void setRateButtonVisibility() {
+        if (this.activity == null) return;
+        this.activity.getBinding().rateUser.setVisibility(isLocalUser(this.userId) ? View.GONE : View.VISIBLE);
+    }
+
+    private void setMenuVisibility() {
+        if (this.activity == null || this.activity.getMenu() == null) return;
+        if (isLocalUser(this.userId)) {
+            this.activity.getMenu().clear();
+        }
     }
 
     private void updateAddContactState() {
@@ -359,13 +413,9 @@ public final class ViewUserPresenter implements
         setBlockedMenuItem();
     }
 
-    public boolean shouldCreateOptionsMenu() {
-        return !isLocalUser();
-    }
-
-    private boolean isLocalUser() {
+    private boolean isLocalUser(final String userAddress) {
         final User localUser = getLocalUser();
-        return localUser != null && localUser.getToshiId().equals(this.userAddress);
+        return localUser != null && localUser.getToshiId().equals(userAddress);
     }
 
     private User getLocalUser() {
@@ -383,7 +433,7 @@ public final class ViewUserPresenter implements
                 BaseApplication
                 .get()
                 .getRecipientManager()
-                .isUserBlocked(this.userAddress)
+                .isUserBlocked(this.userId)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
                         this::handleBlockedUser,
@@ -401,20 +451,22 @@ public final class ViewUserPresenter implements
     private void setBlockedMenuItem() {
         if (this.activity.getMenu() == null) return;
         final MenuItem menuItem = this.activity.getMenu().findItem(R.id.block);
+        if (menuItem == null) return;
         menuItem.setTitle(this.activity.getString(R.string.block));
     }
 
     private void setUnblockedMenuItem() {
         if (this.activity.getMenu() == null) return;
         final MenuItem menuItem = this.activity.getMenu().findItem(R.id.block);
+        if (menuItem == null) return;
         menuItem.setTitle(this.activity.getString(R.string.unblock));
     }
 
     @Override
     public void onViewDetached() {
-        this.userBlockingHandler.clear();
-        this.subscriptions.clear();
-        this.ratingHandler.clear();
+        if (this.userBlockingHandler != null) this.userBlockingHandler.clear();
+        if (this.ratingHandler != null)this.ratingHandler.clear();
+        if (this.subscriptions != null) this.subscriptions.clear();
         this.activity = null;
     }
 
@@ -424,5 +476,9 @@ public final class ViewUserPresenter implements
         this.subscriptions = null;
         this.ratingHandler = null;
         this.activity = null;
+    }
+
+    public void onCreateOptionsMenu() {
+        setMenuVisibility();
     }
 }

@@ -35,6 +35,7 @@ import com.toshi.presenter.factory.ViewUserPresenterFactory;
 
 public class ViewUserActivity extends BasePresenterActivity<ViewUserPresenter, ViewUserActivity> {
     public static final String EXTRA__USER_ADDRESS = "extra_user_address";
+    public static final String EXTRA__USER_NAME = "extra_user_name";
     public static final String EXTRA__PLAY_SCAN_SOUNDS = "play_scan_sounds";
 
     private ActivityViewUserBinding binding;
@@ -56,7 +57,6 @@ public class ViewUserActivity extends BasePresenterActivity<ViewUserPresenter, V
     public void onResume() {
         super.onResume();
         tryProcessResultHolder();
-        tryCreateOptionsMenu();
     }
 
     public ActivityViewUserBinding getBinding() {
@@ -97,12 +97,8 @@ public class ViewUserActivity extends BasePresenterActivity<ViewUserPresenter, V
     public boolean onCreateOptionsMenu(final Menu menu) {
         getMenuInflater().inflate(R.menu.profile, menu);
         this.menu = menu;
-        return tryCreateOptionsMenu();
-    }
-
-    private boolean tryCreateOptionsMenu() {
-        if (this.presenter == null || this.menu == null) return false;
-        return this.presenter.shouldCreateOptionsMenu();
+        if (this.presenter != null) this.presenter.onCreateOptionsMenu();
+        return true;
     }
 
     @Override
