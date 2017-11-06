@@ -23,6 +23,7 @@ import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
+import android.view.View;
 
 import com.toshi.R;
 import com.toshi.model.local.Conversation;
@@ -133,11 +134,16 @@ public final class RecentPresenter implements Presenter<RecentFragment>{
                 .rejectConversation(conversation)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
-                        () -> this.adapter.rejectConversation(conversation),
+                        () -> handleRejection(conversation),
                         throwable -> LogUtil.e(getClass(), "Error while saving blocked user " + throwable)
                 );
 
         this.subscriptions.add(sub);
+    }
+
+    private void handleRejection(final Conversation conversation) {
+        this.adapter.rejectConversation(conversation);
+        updateEmptyState();
     }
 
     private void addSwipeToDeleteListener(final RecyclerView recyclerView) {
@@ -196,17 +202,16 @@ public final class RecentPresenter implements Presenter<RecentFragment>{
     }
 
     private void updateEmptyState() {
-        if (this.fragment == null) {
-            return;
-        }
+        if (this.fragment == null) return;
         // Hide empty state if we have some content
-        final boolean showingEmptyState = this.fragment.getBinding().emptyStateSwitcher.getCurrentView().getId() == this.fragment.getBinding().emptyState.getId();
         final boolean shouldShowEmptyState = this.adapter.getItemCount() == 0;
 
-        if (shouldShowEmptyState && !showingEmptyState) {
-            this.fragment.getBinding().emptyStateSwitcher.showPrevious();
-        } else if (!shouldShowEmptyState && showingEmptyState) {
-            this.fragment.getBinding().emptyStateSwitcher.showNext();
+        if (shouldShowEmptyState) {
+            this.fragment.getBinding().emptyState.setVisibility(View.VISIBLE);
+            this.fragment.getBinding().recents.setVisibility(View.GONE);
+        } else {
+            this.fragment.getBinding().recents.setVisibility(View.VISIBLE);
+            this.fragment.getBinding().emptyState.setVisibility(View.GONE);
         }
     }
 

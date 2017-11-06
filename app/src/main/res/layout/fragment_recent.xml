@@ -56,62 +56,57 @@
                 style="@style/clickableBorderlessBackground"/>
         </LinearLayout>
 
-        <ViewSwitcher
-            android:id="@+id/empty_state__switcher"
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/recents"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:background="@color/windowBackground"
+            android:visibility="gone"/>
 
-            <android.support.v7.widget.RecyclerView
-                android:id="@+id/recents"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:clipToPadding="false"
-                android:background="@color/windowBackground"/>
+        <LinearLayout
+            android:id="@+id/empty_state"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:visibility="gone">
 
-            <LinearLayout
-                android:id="@+id/empty_state"
+            <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:layout_gravity="center"
-                android:gravity="center_horizontal">
+                android:textSize="20sp"
+                android:textColor="@color/textColorPrimary"
+                android:textStyle="normal"
+                android:fontFamily="@string/fontFamily_medium"
+                android:text="@string/no_chats_yet"/>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textSize="20sp"
-                    android:textColor="@color/textColorPrimary"
-                    android:textStyle="normal"
-                    android:fontFamily="@string/fontFamily_medium"
-                    android:text="@string/no_chats_yet"/>
+            <android.support.v4.widget.Space
+                android:layout_width="0dp"
+                android:layout_height="11dp" />
 
-                <android.support.v4.widget.Space
-                    android:layout_width="0dp"
-                    android:layout_height="11dp" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="54dp"
+                android:layout_marginRight="54dp"
+                android:gravity="center"
+                android:textSize="16sp"
+                android:textColor="@color/textColorSecondaryTransparent"
+                android:text="@string/empty_state_recent_message"/>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginLeft="54dp"
-                    android:layout_marginRight="54dp"
-                    android:gravity="center"
-                    android:textSize="16sp"
-                    android:textColor="@color/textColorSecondaryTransparent"
-                    android:text="@string/empty_state_recent_message"/>
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="20dp" />
 
-                <Space
-                    android:layout_width="0dp"
-                    android:layout_height="20dp" />
+            <Button
+                android:id="@+id/start_chat"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/TextViewButton"
+                android:text="@string/start_a_chat"/>
 
-                <Button
-                    android:id="@+id/start_chat"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    style="@style/TextViewButton"
-                    android:text="@string/start_a_chat"/>
-
-            </LinearLayout>
-        </ViewSwitcher>
+        </LinearLayout>
     </LinearLayout>
 
 </layout>
