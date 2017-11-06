@@ -97,24 +97,24 @@
             app:layout_gravity="right">
 
             <Button
-                android:id="@+id/approve_button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                style="@style/TextViewButton"
-                android:textSize="13sp"
-                android:text="@string/button_accept"/>
-
-            <android.support.v4.widget.Space
-                android:layout_width="20dp"
-                android:layout_height="0dp" />
-
-            <Button
                 android:id="@+id/reject_button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 style="@style/TextViewButton"
                 android:textSize="13sp"
                 android:text="@string/button_decline"/>
+
+            <android.support.v4.widget.Space
+                android:layout_width="20dp"
+                android:layout_height="0dp" />
+
+            <Button
+                android:id="@+id/approve_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/TextViewButton"
+                android:textSize="13sp"
+                android:text="@string/button_accept"/>
 
         </LinearLayout>
 
