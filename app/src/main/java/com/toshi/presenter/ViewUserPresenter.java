@@ -360,7 +360,9 @@ public final class ViewUserPresenter implements
     }
 
     public boolean shouldCreateOptionsMenu() {
-        return !isLocalUser();
+        final boolean shouldCreateOptionsMenu = !isLocalUser();
+        if (shouldCreateOptionsMenu) checkIfUserBlocked();
+        return shouldCreateOptionsMenu;
     }
 
     private boolean isLocalUser() {
